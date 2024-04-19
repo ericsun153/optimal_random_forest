@@ -3,7 +3,10 @@
 #include <algorithm>
 #include <string>
 #include <iostream>
+#include <limits>
+#include <stdexcept>
 using std::string;
+using namespace std;
 
 struct DataPoint {
     std::vector<double> features;
@@ -11,14 +14,15 @@ struct DataPoint {
 };
 
 class Node {
-    private:
+public:
     std::vector<DataPoint> data;
 	Node * left;
 	Node * right;
     int splitFeature; // The index of the feature used to split this node.
     double splitValue; // The value of the feature
     double meanResponse; // Used as the prediction for new data points.
-     
+
+public:    
     Node(std::vector<DataPoint> data)
         : data(data), left(nullptr), right(nullptr), splitFeature(-1), splitValue(0), meanResponse(0) {
         // Calculate the mean response when the node is created, provided there is data.
@@ -80,20 +84,58 @@ class DecisionTree {
 private:
     Node* root;
 
-public:
     DecisionTree() : root(nullptr) {}
 
-    void buildTree(std::vector<DataPoint>& data, int minSamplesSplit) {
-        root = buildRecursive(data, minSamplesSplit);
+    Node* buildTree(std::vector<DataPoint>& data, size_t minSize) {
+        if (data.size() <= minSize) {
+            return new Node(data);
+        }
+
+        double bestMSE = std::numeric_limits<double>::max();
+        int bestFeature = -1;
+        double bestValue = 0;
+        std::vector<DataPoint> bestLeft, bestRight;
+
+        // Iterate over all features.
+        for (size_t featureIndex = 0; featureIndex < data[0].features.size(); ++featureIndex) {
+            double value;
+            std::vector<DataPoint> leftSplit, rightSplit;
+
+            double mse = trySplit(data, featureIndex, value, leftSplit, rightSplit);
+
+            // If found a smaller mse, found a better split
+            if (mse < bestMSE) {
+                bestMSE = mse;
+                bestFeature = featureIndex;
+                bestValue = value;
+                bestLeft = leftSplit;
+                bestRight = rightSplit;
+            }
+        }
+
+        // If no feature improved the split, this becomes a leaf node.
+        if (bestFeature == -1) {
+            return new Node(data);
+        }
+
+        // Create a new node with the best split and recursively build its left and right subtrees.
+        Node* node = new Node(data);
+        node->splitFeature = bestFeature;
+        node->splitValue = bestValue;
+        node->left = buildTree(bestLeft, minSize);
+        node->right = buildTree(bestRight, minSize);
+        return node;
     }
 
-    Node* buildRecursive(std::vector<DataPoint>& data, int minSamplesSplit) {
-        // Recursive function to build the tree
-        // This is where the majority of the logic for partitioning will go
+    double trySplit(const std::vector<DataPoint>& data, size_t featureIndex, double& value,
+                    std::vector<DataPoint>& leftSplit, std::vector<DataPoint>& rightSplit) {
+        // Placeholder for logic to determine the best split point and calculate MSE.
+        return std::numeric_limits<double>::max();
     }
 
     double predict(const std::vector<double>& features) {
         // Implement logic to traverse the tree and make a prediction
+        return 0.0;
     }
 };
 
@@ -109,6 +151,7 @@ public:
 
     double predict(const std::vector<double>& features) {
         // Aggregate predictions from all trees
+        return 0.0;
     }
 };
 
