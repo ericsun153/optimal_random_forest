@@ -1,2 +1,2 @@
 # optimal_random_forest
-Implementation Vanila Random Forest
+Implementation of an Adaptive Split Balancing Random Forest for regression
