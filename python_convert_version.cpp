@@ -50,21 +50,26 @@ std::pair<int, double> best_split(const std::vector<std::vector<double>>& X, con
                                   const std::vector<double>& weights, int min_samples_split) {
     int best_feature = -1;
     double best_threshold = 0.0;
-    double best_mse = std::numeric_limits<double>::max();
+    double best_mse = std::numeric_limits<double>::max(); // Initial maximum MSE
 
-    // Loop over each feature
+    // Loop over each feature to evaluate the best split
     for (int feature = 0; feature < X[0].size(); ++feature) {
+        // Store all values for the current feature
         std::vector<double> feature_values;
+        // Collect values for the current feature
         for (const auto& sample : X) {
             feature_values.push_back(sample[feature]);
         }
 
         auto thresholds = unique_sorted(feature_values);
+
+        // Loop through each threshold to find the best split
         for (double threshold : thresholds) {
             std::vector<double> left_y, right_y, left_weights, right_weights;
 
             // Divide data into left and right according to the threshold
             for (size_t i = 0; i < X.size(); ++i) {
+                // Divide samples into left and right based on the threshold
                 if (X[i][feature] < threshold) {
                     left_y.push_back(y[i]);
                     left_weights.push_back(weights[i]);
@@ -74,7 +79,7 @@ std::pair<int, double> best_split(const std::vector<std::vector<double>>& X, con
                 }
             }
 
-            // Only consider valid splits
+            // Skip invalid splits with fewer samples than required
             if (left_y.size() < min_samples_split || right_y.size() < min_samples_split) {
                 continue;
             }
@@ -84,7 +89,7 @@ std::pair<int, double> best_split(const std::vector<std::vector<double>>& X, con
             double mse_right = calculate_mse(right_y, right_weights);
             double mse_total = mse_left + mse_right;
 
-            // Update best split if found a new minimum MSE
+            // Update the best split if the total MSE is lower
             if (mse_total < best_mse) {
                 best_mse = mse_total;
                 best_feature = feature;
@@ -105,27 +110,38 @@ double weighted_average(const std::vector<double>& values, const std::vector<dou
 // Recursive function to build the decision tree
 DecisionNode* build_tree(const std::vector<std::vector<double>>& X, const std::vector<double>& y,
                          const std::vector<double>& weights, int min_samples_split, int max_depth, int depth = 0) {
+
+    // Base cases for stopping recursion and creating a leaf node                        
     if (y.size() < 2 * min_samples_split || std::set<double>(y.begin(), y.end()).size() == 1 || depth >= max_depth) {
+        // If there are not enough samples, all targets are the same, or max depth is reached
         double leaf_value = weighted_average(y, weights);
         return new DecisionNode(leaf_value);
     }
 
+    // Get the best feature and threshold for splitting
     auto [feature, threshold] = best_split(X, y, weights, min_samples_split);
-    if (feature == -1) { // No valid split found
+
+    // If no valid split is found, create a leaf node
+    if (feature == -1) {
         double leaf_value = weighted_average(y, weights);
         return new DecisionNode(leaf_value);
     }
 
-    std::vector<std::vector<double>> left_X, right_X;
-    std::vector<double> left_y, right_y, left_weights, right_weights;
+    std::vector<std::vector<double>> left_X, right_X;  // Datasets for left and right branches
+    std::vector<double> left_y, right_y, left_weights, right_weights;  // Target values and weights for left and right branches
 
     // Split data into left and right subsets
     for (size_t i = 0; i < X.size(); ++i) {
+
+        // Add to the left branch
         if (X[i][feature] < threshold) {
             left_X.push_back(X[i]);
             left_y.push_back(y[i]);
             left_weights.push_back(weights[i]);
-        } else {
+        } 
+        
+        // Add to the right branch
+        else {
             right_X.push_back(X[i]);
             right_y.push_back(y[i]);
             right_weights.push_back(weights[i]);
